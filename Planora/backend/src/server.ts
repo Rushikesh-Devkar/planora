@@ -1,6 +1,8 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import path from "path";
+import fs from "fs";
 import prisma from "./lib/prisma";
 import { startNotifier, sendTelegram } from "./lib/notifier";
 
@@ -590,6 +592,24 @@ app.delete("/api/goals/:id", async (req, res) => {
 });
 
 /* START SERVER */
+/* FRONTEND (React build) - same server se serve hota hai */
+const FRONTEND_DIST = [
+  path.resolve(process.cwd(), "../frontend/dist"),
+  path.resolve(process.cwd(), "frontend/dist"),
+].find((dir) => fs.existsSync(path.join(dir, "index.html")));
+
+if (FRONTEND_DIST) {
+  app.use(express.static(FRONTEND_DIST));
+
+  app.use((req, res, next) => {
+    if (req.method !== "GET" || req.path.startsWith("/api")) return next();
+    res.sendFile(path.join(FRONTEND_DIST, "index.html"));
+  });
+
+  console.log("FRONTEND: serving from", FRONTEND_DIST);
+} else {
+  console.log("FRONTEND: dist folder nahi mila (sirf API chal rahi hai)");
+}
 async function startServer() {
   try {
     await prisma.$connect();
